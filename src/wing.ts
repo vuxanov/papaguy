@@ -127,8 +127,8 @@ export function createWing(side: 1 | -1) {
   web.frustumCulled = false;
   attachment.add(web);
   const joiningFeathers = Array.from({ length: rows }, (_, row) =>
-    Array.from({ length: 3 }, (_, layer) => {
-      const feather = new THREE.Mesh(vane(1, .022 + .004 * layer, 0xa32b29, 0x902629,
+    Array.from({ length: 2 }, (_, layer) => {
+      const feather = new THREE.Mesh(vane(1, .018 + .003 * layer, 0xa32b29, 0x902629,
         row * 1.8 + layer * 2.3, .07), material);
       attachment.add(feather);
       return feather;
@@ -170,7 +170,7 @@ export function createWing(side: 1 | -1) {
   for (let i = 0; i < 10; i++) {
     const t = i / 9;
     flight(.264 + t * .12, -.073 + t * .052, .224 + Math.sin(t * Math.PI * .84) * .097,
-      .031 - t * .009, -1.02 + t * .92, -.25 + t * .40, i + 10, i >= 5 ? 9 - i : undefined);
+      .031 - t * .009, -1.08 + t * .77, -.16 + t * .21, i + 10, i >= 5 ? 9 - i : undefined);
   }
 
   for (let row = 0; row < 4; row++) {
@@ -188,11 +188,9 @@ export function createWing(side: 1 | -1) {
           top.getHex(), bottom.getHex(), i * 2.6, .11), material);
         movingFeather(feather, new THREE.Vector3(x, y, .009), tilt, tilt, undefined, true);
       } else {
+        // Each vane already has a colored upper and lower surface.
         cover(vane(.084 + row * .018 + t * .026, .027 - t * .003,
-          top.getHex(), bottom.getHex(), i * 2.6 + row, .11).rotateZ(tilt), x, y, .025 - row * .004);
-        cover(vane(.080 + row * .018 + t * .024, .026 - t * .003,
-          top.getHex(), bottom.getHex(), i * 2.6 - row, .11).rotateZ(tilt - .045),
-          x - .006, y - .008, -.014 + row * .002);
+          top.getHex(), bottom.getHex(), i * 2.6 + row, .11).rotateZ(tilt), x, y, .010 - row * .003);
       }
     }
   }
@@ -241,8 +239,8 @@ export function createWing(side: 1 | -1) {
     if (!root.visible) return;
     for (const [index, layers] of joiningFeathers.entries()) {
       const t = index / (rows - 1);
-      anchor.set(side * (.057 + t * .012), .368 + t * .164, .281 + .023 * Math.sin(t * Math.PI));
-      link.set(.025 + t * .131, -.182 + t * .116, .002 + t * .011)
+      anchor.set(side * (.051 + t * .016), .399 + t * .136, .275 + .022 * Math.sin(t * Math.PI));
+      link.set(.022 + t * .117, -.112 + t * .054, .002 + t * .011)
         .multiply(feathers.scale).applyQuaternion(root.quaternion).add(root.position);
       line.copy(anchor).sub(link);
       const length = Math.max(.035, line.length());
@@ -257,12 +255,12 @@ export function createWing(side: 1 | -1) {
       stripPoints.setXYZ(index * 3 + 2, anchor.x, anchor.y, anchor.z);
 
       for (const [layer, feather] of layers.entries()) {
-        feather.position.copy(link).lerp(anchor, layer * .285)
+        feather.position.copy(link).lerp(anchor, layer * .40)
           .addScaledVector(linkNormal, .006 + layer * .006)
           .addScaledVector(linkUp, layer * .009 - .005);
         feather.quaternion.setFromRotationMatrix(linkBasis);
         feather.rotateZ((layer ? .10 : -.03) + Math.sin(index * 1.3) * .07);
-        feather.scale.set(length * .46 + .032, .87 + t * .19, .32);
+        feather.scale.set(length * .59 + .022, .87 + t * .19, .32);
       }
     }
     stripPoints.needsUpdate = true;
@@ -381,8 +379,8 @@ export function createWing(side: 1 | -1) {
       mount.quaternion.identity().slerp(elbow.quaternion, weight);
       const curl = finger === undefined ? 0 : controls[`${hand}${fingers[finger]}`];
       const fingerSpread = finger === undefined ? 0 : controls[`${hand}${fingers[finger]}Spread`];
-      feather.rotation.z = THREE.MathUtils.lerp(folded, open, unfurl) + opened * (fingerSpread * .23 - curl * .20);
-      feather.rotation.y = curl * opened * 1.05;
+      feather.rotation.z = THREE.MathUtils.lerp(folded, open, unfurl) + opened * (fingerSpread * .15 - curl * .13);
+      feather.rotation.y = curl * opened * .53;
       feather.rotation.x = covert ? 0 : fan * .11 + curl * .08;
       if (shield > 0) {
         const inward = handConfidence > .3 && Math.abs(handDirection.x) > .35
