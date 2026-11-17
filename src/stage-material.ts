@@ -1,13 +1,12 @@
 import type { MeshStandardMaterial } from 'three';
 
-export function dressMaterial(material: MeshStandardMaterial, wing?: { amount: number; folded: boolean }, eyes?: { left: number; right: number }) {
-  material.customProgramCacheKey = () => wing ? (wing.folded ? 'folded wing' : 'open wing') : eyes ? 'body with scanned eyelids' : 'body fade';
+export function dressMaterial(material: MeshStandardMaterial, { folded = false, eyes }: { folded?: boolean; eyes?: { left: number; right: number } } = {}) {
+  material.customProgramCacheKey = () => folded ? 'folded wing' : eyes ? 'body with scanned eyelids' : 'body fade';
   material.onBeforeCompile = shader => {
     shader.vertexShader = 'varying float stageHeight;\n' + shader.vertexShader.replace(
       '#include <project_vertex>',
       '#include <project_vertex>\nstageHeight = (modelMatrix * vec4(transformed, 1.0)).y;',
     );
-    let coverage = '';
     if (eyes) {
       const lidLevels = new Float32Array(2);
       shader.uniforms.eyelids = {
@@ -31,7 +30,7 @@ export function dressMaterial(material: MeshStandardMaterial, wing?: { amount: n
       );
     }
 
-    if (wing?.folded) {
+    if (folded) {
       shader.vertexShader = 'varying float featherHeight;\n' + shader.vertexShader.replace(
         '#include <begin_vertex>', '#include <begin_vertex>\nfeatherHeight = position.y;',
       );
@@ -44,19 +43,9 @@ export function dressMaterial(material: MeshStandardMaterial, wing?: { amount: n
          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(.55, 1.18, 1.12), olive * .67);`,
       );
     }
-    if (wing) {
-      shader.uniforms.wingAmount = {
-        get value() { return wing.amount; },
-      };
-      shader.fragmentShader = 'uniform float wingAmount;\n' + shader.fragmentShader;
-      coverage = `
-        float grain = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
-        if (grain ${wing.folded ? '<' : '>='} wingAmount) discard;
-      `;
-    }
     shader.fragmentShader = 'varying float stageHeight;\n' + shader.fragmentShader.replace(
       '#include <tonemapping_fragment>',
-      coverage + 'gl_FragColor.rgb *= smoothstep(-0.235, -0.12, stageHeight);\n#include <tonemapping_fragment>',
+      'gl_FragColor.rgb *= smoothstep(-0.235, -0.12, stageHeight);\n#include <tonemapping_fragment>',
     );
   };
 }

@@ -100,9 +100,9 @@ export function createWing(side: 1 | -1) {
   feathers.scale.x = side;
   trunk.add(elbow);
   root.add(feathers);
-  const revealed = { amount: 0, folded: false };
+  root.visible = attachment.visible = false;
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .72 });
-  dressMaterial(material, revealed);
+  dressMaterial(material);
   const rows = 15;
   const strip = new THREE.BufferGeometry();
   const stripPoints = new THREE.BufferAttribute(new Float32Array(rows * 3 * 3), 3);
@@ -122,7 +122,7 @@ export function createWing(side: 1 | -1) {
   strip.setAttribute('color', new THREE.Float32BufferAttribute(stripColors, 3));
   strip.setIndex(stripIndices);
   const liningMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .86, side: THREE.DoubleSide });
-  dressMaterial(liningMaterial, revealed);
+  dressMaterial(liningMaterial);
   const web = new THREE.Mesh(strip, liningMaterial);
   web.frustumCulled = false;
   attachment.add(web);
@@ -184,12 +184,9 @@ export function createWing(side: 1 | -1) {
       const top = new THREE.Color(row < 2 ? 0xb7312a : row === 2 ? 0xd2a83a : 0x335ba0).multiplyScalar(shade);
       const bottom = new THREE.Color(row < 2 ? 0x982c27 : row === 2 ? 0x8e8042 : 0xa16b45).multiplyScalar(shade);
       if (row === 3) {
-        for (const face of [1, -1]) {
-          const feather = new THREE.Mesh(vane(.132 + t * .026, .026 - t * .003,
-            top.getHex(), bottom.getHex(), i * 2.6 + face, .11), material);
-          const base = new THREE.Vector3(x, y - (face < 0 ? .006 : 0), face > 0 ? .013 : -.008);
-          movingFeather(feather, base, tilt, tilt, undefined, true);
-        }
+        const feather = new THREE.Mesh(vane(.132 + t * .026, .026 - t * .003,
+          top.getHex(), bottom.getHex(), i * 2.6, .11), material);
+        movingFeather(feather, new THREE.Vector3(x, y, .009), tilt, tilt, undefined, true);
       } else {
         cover(vane(.084 + row * .018 + t * .026, .027 - t * .003,
           top.getHex(), bottom.getHex(), i * 2.6 + row, .11).rotateZ(tilt), x, y, .025 - row * .004);
@@ -286,9 +283,15 @@ export function createWing(side: 1 | -1) {
     const sweep = THREE.MathUtils.lerp(ordinarySweep, 2.19, cover);
     const hangingArm = THREE.MathUtils.smoothstep(-controls[`${hand}UpperY`], .53, .87);
     const liftOpen = THREE.MathUtils.smoothstep(lift, .155 + hangingArm * .10, .235 + hangingArm * .10);
-    revealed.amount = Math.max(liftOpen, THREE.MathUtils.smoothstep(reach, .33, .57)
+    const openness = Math.max(liftOpen, THREE.MathUtils.smoothstep(reach, .33, .57)
       * THREE.MathUtils.smoothstep(lift, .04, .22), acrossFace);
-    root.visible = revealed.amount > 0;
+    // The two silhouettes cannot overlap. Separate opening and closing thresholds
+    // keep the mesh choice steady when tracking fluctuates near the folded pose.
+    root.visible = openness >= (root.visible ? .35 : .58);
+    if (!root.visible) {
+      attachment.visible = false;
+      return false;
+    }
     const extension = Math.cos(elevation);
     cameraLength.set(side * extension * Math.cos(sweep), Math.sin(elevation),
       extension * Math.sin(sweep)).normalize();
@@ -401,7 +404,7 @@ export function createWing(side: 1 | -1) {
       }
     }
     join();
-    return revealed.amount;
+    return true;
   }
   return { root, attachment, pose };
 }

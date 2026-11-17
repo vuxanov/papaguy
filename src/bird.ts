@@ -172,16 +172,10 @@ async function makeMacaw() {
   source.material.metalness = 0;
   source.material.roughness = .82;
   const eyes = { left: 0, right: 0 };
-  dressMaterial(source.material, undefined, eyes);
-  const folded = [
-    { amount: 0, folded: true },
-    { amount: 0, folded: true },
-  ];
-  const foldedMaterials = folded.map(state => {
-    const material = source.material.clone();
-    dressMaterial(material, state);
-    return material;
-  });
+  dressMaterial(source.material, { eyes });
+  const folded: THREE.Mesh[] = [];
+  const foldedMaterial = source.material.clone();
+  dressMaterial(foldedMaterial, { folded: true });
 
   const mirrored = new Map<number, number>();
   for (const vertex of reflected) {
@@ -233,7 +227,9 @@ async function makeMacaw() {
       mesh.position.copy(upperOrigin).negate();
       pivot.add(mesh);
     } else {
-      pivot.add(new THREE.Mesh(part, foldedMaterials[index - 3]));
+      const foldedWing = new THREE.Mesh(part, foldedMaterial);
+      folded[index - 3] = foldedWing;
+      pivot.add(foldedWing);
     }
   }
   const bird = new THREE.Group();
@@ -300,8 +296,8 @@ export async function createBird(canvas: HTMLCanvasElement) {
     head.rotation.set(controls.headPitch - controls.pitch * .55,
       THREE.MathUtils.clamp(controls.headYaw * 1.23 - controls.yaw * .4, -1.06, 1.06),
       controls.headRoll - controls.roll * .5);
-    folded[0].amount = left.pose(controls, inverseBody);
-    folded[1].amount = right.pose(controls, inverseBody);
+    folded[0].visible = !left.pose(controls, inverseBody);
+    folded[1].visible = !right.pose(controls, inverseBody);
     jaw.rotation.x = -.045 + controls.jaw * .67;
     upperBill.rotation.x = -controls.jaw * .205;
     express(controls.jaw);
